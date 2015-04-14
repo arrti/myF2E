@@ -49,9 +49,9 @@ class Filters():
                 return range(1, total_page + 1)
 
             if(current_page + list_rows > total_page):
-                return range(total_page - list_rows + 1, list_rows + 1)
-
-            return range(current_page, list_rows + 1)
+                return range(total_page - list_rows, total_page + 1)
+            else:
+                return range(current_page, list_rows + current_page + 1)
 
         t = self.jinja2.from_string("""
             {% if page and not page.pages == 1 %}
