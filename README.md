@@ -1,37 +1,18 @@
-## ABOUT F2E.im
+## ABOUT myF2E
 
-F2E is a community for front-end-developer.
+一直想学习tornado框架，Google之，发现了GuoKai大神的[F2E.im](https://github.com/PaulGuo/F2E.im)的开源项目，然后就赶紧读源码学习，获益良多（和大神的差距实在是大啊），最后按照自己的理解和想法添加了一些功能，还有很多想法没有实现，打算继续学习和完善。这个项目完全基于F2E.im进行开发。
 
-## How to contribute
+## ABOUT me
+我是一名Python初学者和爱好者，git和github小白，本职是硬件工程师。
 
-Fork and send pull request.
+## Something New
 
-## How to run f2e.im on your own machine
+1. 增加了使用markdown编辑器时所见即所得功能，经过markdown渲染后的内容会显示在编辑框的上部，主要参考了hallojs的[demo](http://hallojs.org/demo/markdown/)。
+2. 增加了markdown上传本地图片的功能，图片会直接上传至我的七牛云空间中，自动在编辑器中添加图片的公共链接，访问时会自动转换为私密链接，防止盗链以及**节省流量**(体验用户伤不起)。
+3. 增加了屏蔽主题和用户的功能。
+4. 将原来的“编辑主题”改为了如今的“追加说明”，参考[V2EX](https://www.v2ex.com/)的“附言”，我感觉禁止用户修改已经发布的主题这个想法很棒。
+5. 增加了用户上传照片、添加照片描述的功能，可以对照片数量和描述的字数进行设置，用户可以选择是否展示在“瀑布流”中（这个功能是什么gui……）
 
-1. install all required modules:
+## Thanks
 
-    ```
-    shell> pip install -r requirements.txt
-    ```
-
-2. create database and then execute sql file in dbstructure/
-
-    ```
-    shell> mysql -u YOURUSERNAME -p
-
-    mysql> create database f2e;
-    mysql> exit
-
-    shell> mysql -u YOURUSERNAME -p --database=f2e < dbstructure/f2e.sql
-    ```
-
-3. set your mysql user/password and smtp server config in `application.py` and `lib/sendmail.py`.
-4. check above, using ``python application.py`` to start server.
-
-    ```
-    shell> python application.py --port=9001 --mysql_database=f2e --mysql_host=localhost --mysql_password=YOURPASSWORD --mysql_user=YOURUSERNAME
-    ```
-
-## How to set up a production enironment
-
-You need to know a little of supervisor and nginx, all config files are available in conf/
+感谢GuoKai以及千千万万的开源大神们，学习编程从未如此美好！
