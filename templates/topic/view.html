@@ -17,6 +17,9 @@
     <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/javascript" src="/static/js/widget/emmet.min.js"></script>
     <script type="text/javascript" src="/static/js/widget/jquery.textarea.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/showdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/to-markdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/markdown-editor.js"></script>
     <script type="text/javascript">
         jQuery(document).ready(function() {
             $('textarea.smart-code-support').tabby();
@@ -32,17 +35,21 @@
                 var _node = $(this);
                 var _errorMap = {
                     topic_not_exist: '主题不存在',
-                    can_not_vote_your_topic: '不能喜欢自己的主题',
+                    can_not_vote_your_topic: '不能感谢自己的主题',
                     already_voted: '感谢已经表示过',
                 };
                 e.preventDefault();
-                $.getJSON(_node.attr('href'), function(data) {
-                    if(data.success) {
-                        _node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">感谢已表示</span>');
-                    } else {
-                        _node.html('<span>' + _errorMap[data.message] + '</span>');
-                    }
-                });
+                var r = confirm('确定要感谢本主题？');
+                if(r == true)
+                {
+                    $.getJSON(_node.attr('href'), function(data) {
+                        if(data.success) {
+                            _node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">感谢已表示</span>');
+                        } else {
+                            _node.html('<span>' + _errorMap[data.message] + '</span>');
+                        }
+                    });
+                }
             });
 
             $('.J_topicFavorite').click(function(e) {
@@ -74,6 +81,30 @@
                         _node.html('<span>' + _errorMap[data.message] + '</span>');
                     }
                 });
+            });
+
+            $('.J_topicBlock').click(function(e) {
+                var _node = $(this);
+                var _errorMap = {
+                    user_not_login: '屏蔽失败',
+                    topic_not_exist: '主题不存在',
+                    can_not_block_your_topic: '不能屏蔽自己的主题',
+                    already_blocked: '已经屏蔽该主题',
+                };
+                e.preventDefault();
+                var r = confirm('确定要屏蔽本主题？');
+                if(r == true)
+                {
+                    $.getJSON(_node.attr('href'), function(data) {
+                        if(data.success) {
+                            window.location.href = "/";
+                            //_node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">已屏蔽</span>');
+                        } else {
+                            _node.html('<span>' + _errorMap[data.message] + '</span>');
+                        }
+                    });
+                }
+
             });
 
             $('.J_replyTo').click(function(e) {
@@ -132,6 +163,14 @@
         </div>
         <div class="ui-content">
             {{ topic.content|markdown|content_process }}
+            {% set append_num = 0 %}
+            {% for append in appends %}
+            {% set append_num = append_num + 1 %}
+            <hr>
+            <span class="floor" style="color:#999">第{{ append_num }}条追加说明</span>
+            <span class="time fr" style="color:#999">{{ append.created|pretty_date }}</span>
+            {{ append.content|markdown|content_process }}
+            {% endfor %}
         </div>
         <div class="ui-footer">
             {% if not topic_favorited %}
@@ -139,11 +178,14 @@
             {% else %}
             <a href="/unfavorite?topic_id={{ topic.id }}" class="J_topicFavorite" data-type="unfavorite">取消收藏</a>
             {% endif %}
-            <a href="#" onclick="window.open('https://twitter.com/intent/tweet?hashtags={{ topic.node_slug }}&text={{ topic.title }}&url=http://{{ request.host }}{{ request.uri }}');">Tweet</a>
-            <a href="#" onclick="window.open('http://service.weibo.com/share/share.php?url=http://{{ request.host }}{{ request.uri }}&title=F2E%20-%20{{ topic.title }}', '_blank', 'width=550, height=370');">新浪微博</a>
-            <a href="/vote?topic_id={{ topic.id }}" class="J_topicVote">喜欢</a>
+            <!--a href="#" onclick="window.open('https://twitter.com/intent/tweet?hashtags={{ topic.node_slug }}&text={{ topic.title }}&url=http://{{ request.host }}{{ request.uri }}');">Tweet</a-->
+            <a href="#" onclick="window.open('http://service.weibo.com/share/share.php?url=http://{{ request.host }}{{ request.uri }}&title=F2E%20-%20{{ topic.title }}', '_blank', 'width=550, height=370');">微博</a>
+            <a href="#" onclick="window.open('http://www.douban.com/share/service?image=&href=http://{{ request.host }}{{ request.uri }}&name=F2E%20-%20{{ topic.title }}&text=http://{{ request.host }}{{ request.uri }}', '_blank', 'width=550, height=370');">豆瓣</a>
+            <a href="/blocktopic?topic_id={{ topic.id }}" class="J_topicBlock">屏蔽</a>
+            <a href="/vote?topic_id={{ topic.id }}" class="J_topicVote">感谢</a>
             {% if current_user and current_user.uid == topic.author_id %}
                 <a href="/t/edit/{{ topic.id }}" class="fr">编辑主题</a>
+                <a href="/t/append/{{ topic.id }}" class="fr">追加说明</a>
             {% endif %}
             <span class="hits fr mr10">{{ topic.hits or 0 }} 次点击</span>
         </div>
@@ -203,7 +245,8 @@
             <div class="ui-content">
                 <form class="mt10" action="" method="post">
                     {{ errors|dump_errors }}
-                    <textarea rows="3" class="content mt5 smart-code-support J_replyContent" placeholder="回复内容" name="content"></textarea>
+                    <div class="editable"></div>
+                    <textarea id="source" rows="3" class="content mt5 smart-code-support J_replyContent" placeholder="回复内容" name="content"></textarea>
                     <input name="tid" type="hidden" value="{{ topic.id }}" />
                     <input type="submit" id="checkall" class="btn btn-small" value="立即回复">
                     {{ xsrf_form_html() }}

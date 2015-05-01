@@ -7,7 +7,7 @@
 
 import uuid
 import hashlib
-import Image
+from PIL import Image
 import StringIO
 import time
 import json
@@ -18,6 +18,7 @@ import lib.jsonp
 import pprint
 import math
 import datetime
+import glob
 
 from base import *
 from lib.variables import *
@@ -31,6 +32,7 @@ class IndexHandler(BaseHandler):
         user_info = self.current_user
         page = int(self.get_argument("p", "1"))
         template_variables["user_info"] = user_info
+        user_id = None
         if(user_info):
             template_variables["user_info"]["counter"] = {
                 "topics": self.topic_model.get_user_all_topics_count(user_info["uid"]),
@@ -39,14 +41,31 @@ class IndexHandler(BaseHandler):
             }
 
             template_variables["notifications_count"] = self.notification_model.get_user_unread_notification_count(user_info["uid"]);
-
+            user_id = user_info['uid']
         template_variables["status_counter"] = {
             "users": self.user_model.get_all_users_count(),
             "nodes": self.node_model.get_all_nodes_count(),
             "topics": self.topic_model.get_all_topics_count(),
             "replies": self.reply_model.get_all_replies_count(),
         }
-        template_variables["topics"] = self.topic_model.get_all_topics(current_page = page)
+
+        blocked_topic_list = self.blocked_model.get_blocked_topic_id(user_id)
+        if not blocked_topic_list:
+            blocked_topic = [-1,-2]# no blocked, all invalid topic id > 0, this will block no topic
+        else:
+            blocked_topic = [-1]#to ensure that sql "in ()" have at least 2 items, only 1 item in tuple will be (22,), the ',' is wrong in sql
+            for row in blocked_topic_list:
+                blocked_topic.append(row['involved_topic_id'])
+        blocked_topic = re.sub('L', '', str(tuple(blocked_topic)))#int type from mysql  convert python long type like 22L, so use re remove 'L'
+        blocked_user_list = self.blocked_model.get_blocked_user_id(user_id)
+        if not blocked_user_list:
+            blocked_user = [-1,-2]# no blocked, all invalid user id > 0, this will block no user
+        else:
+            blocked_user = [-1]
+            for row in blocked_user_list:
+                blocked_user.append(row['involved_user_id'])
+        blocked_user = re.sub('L', '', str(tuple(blocked_user)))
+        template_variables["topics"] = self.topic_model.get_all_not_blocked_topics(current_page = page, blocked_user = blocked_user, blocked_topic = blocked_topic)
         template_variables["planes"] = self.plane_model.get_all_planes_with_nodes()
         template_variables["hot_nodes"] = self.node_model.get_all_hot_nodes()
         template_variables["active_page"] = "topic"
@@ -79,6 +98,7 @@ class ViewHandler(BaseHandler):
         page = int(self.get_argument("p", "1"))
         user_info = self.get_current_user()
         template_variables["user_info"] = user_info
+        user_id = None
         if(user_info):
             template_variables["user_info"]["counter"] = {
                 "topics": self.topic_model.get_user_all_topics_count(user_info["uid"]),
@@ -88,10 +108,10 @@ class ViewHandler(BaseHandler):
 
             template_variables["notifications_count"] = self.notification_model.get_user_unread_notification_count(user_info["uid"]);
             template_variables["topic_favorited"] = self.favorite_model.get_favorite_by_topic_id_and_owner_user_id(topic_id, user_info["uid"]);
-
+            user_id = user_info['uid']
         template_variables["gen_random"] = gen_random
         template_variables["topic"] = self.topic_model.get_topic_by_topic_id(topic_id)
-
+        template_variables["appends"] = self.append_model.get_topic_append_by_topic_id(topic_id)
         # check reply count and cal current_page if `p` not given
         reply_num = 106
         reply_count = template_variables["topic"]["reply_count"]
@@ -100,7 +120,15 @@ class ViewHandler(BaseHandler):
         template_variables["reply_num"] = reply_num
         template_variables["current_page"] = page
 
-        template_variables["replies"] = self.reply_model.get_all_replies_by_topic_id(topic_id, current_page = page, num = reply_num)
+        blocked_user_list = self.blocked_model.get_blocked_user_id(user_id)
+        if not blocked_user_list:
+            blocked_user = [-1,-2]# no blocked, all invalid user id > 0, this will block no user
+        else:
+            blocked_user = [-1]
+            for row in blocked_user_list:
+                blocked_user.append(row['involved_user_id'])
+        blocked_user = re.sub('L', '', str(tuple(blocked_user)))
+        template_variables["replies"] = self.reply_model.get_all_not_blocked_replies_by_topic_id(topic_id, current_page = page, num = reply_num, blocked_user = blocked_user)
         template_variables["active_page"] = "topic"
 
         # update topic reply_count and hits
@@ -136,8 +164,11 @@ class ViewHandler(BaseHandler):
             return
 
         if(replied_info):
-            last_replied_fingerprint = hashlib.sha1(str(replied_info.topic_id) + str(replied_info.author_id) + replied_info.content).hexdigest()
-            new_replied_fingerprint = hashlib.sha1(str(form.tid.data) + str(self.current_user["uid"]) + form.content.data).hexdigest()
+            #last_replied_fingerprint = hashlib.sha1(str(replied_info.topic_id) + str(replied_info.author_id) + replied_info.content).hexdigest()
+            #new_replied_fingerprint = hashlib.sha1(str(form.tid.data) + str(self.current_user["uid"]) + form.content.data).hexdigest()
+
+            last_replied_fingerprint = hashlib_sha1(str(replied_info.topic_id) + str(replied_info.author_id) + replied_info.content)
+            new_replied_fingerprint = hashlib_sha1(str(form.tid.data) + str(self.current_user["uid"]) + form.content.data)
 
             if last_replied_fingerprint == new_replied_fingerprint:
                 template_variables["errors"] = {}
@@ -245,8 +276,11 @@ class CreateHandler(BaseHandler):
         last_created = self.topic_model.get_user_last_created_topic(self.current_user["uid"])
 
         if last_created:
-            last_created_fingerprint = hashlib.sha1(last_created.title + last_created.content + str(last_created.node_id)).hexdigest()
-            new_created_fingerprint = hashlib.sha1(form.title.data + form.content.data + str(node["id"])).hexdigest()
+            #last_created_fingerprint = hashlib.sha1(last_created.title + last_created.content + str(last_created.node_id)).hexdigest()
+            #new_created_fingerprint = hashlib.sha1(form.title.data + form.content.data + str(node["id"])).hexdigest()
+
+            last_created_fingerprint = hashlib_sha1(last_created.title + last_created.content + str(last_created.node_id))
+            new_created_fingerprint = hashlib_sha1(form.title.data + form.content.data + str(node["id"]))
 
             if last_created_fingerprint == new_created_fingerprint:
                 template_variables["errors"] = {}
@@ -330,6 +364,69 @@ class EditHandler(BaseHandler):
         self.user_model.set_user_base_info_by_uid(topic_info["author_id"], {"reputation": reputation})
         self.redirect("/t/%s" % topic_id)
 
+class AppendHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self, topic_id, template_variables = {}):
+        user_info = self.current_user
+        template_variables["user_info"] = user_info
+        template_variables["user_info"]["counter"] = {
+            "topics": self.topic_model.get_user_all_topics_count(user_info["uid"]),
+            "replies": self.reply_model.get_user_all_replies_count(user_info["uid"]),
+            "favorites": self.favorite_model.get_user_favorite_count(user_info["uid"]),
+        }
+
+        template_variables["notifications_count"] = self.notification_model.get_user_unread_notification_count(user_info["uid"]);
+        template_variables["topic"] = self.topic_model.get_topic_by_topic_id(topic_id)
+        template_variables["appends"] = self.append_model.get_topic_append_by_topic_id(topic_id)
+        template_variables["gen_random"] = gen_random
+        template_variables["active_page"] = "topic"
+        self.render("topic/append.html", **template_variables)
+
+    @tornado.web.authenticated
+    def post(self, topic_id, template_variables = {}):
+        template_variables = {}
+
+        # validate the fields
+
+        form = AppendForm(self)
+
+        if not form.validate():
+            self.get(topic_id, {"errors": form.errors})
+            return
+
+        # continue while validate succeed
+
+        topic_info = self.topic_model.get_topic_by_topic_id(topic_id)
+
+        if(not topic_info["author_id"] == self.current_user["uid"]):
+            template_variables["errors"] = {}
+            template_variables["errors"]["invalid_permission"] = [u"没有权限为该主题追加说明"]
+            self.get(topic_id, template_variables)
+            return
+        append_content = '\n---   \n'
+        append_content = append_content + form.content.data
+        append_info = {
+            "topic_id": topic_id,
+            "author_id": self.current_user["uid"],
+            "content": form.content.data,
+            "created": time.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+        update_topic_info = {
+            "updated": time.strftime('%Y-%m-%d %H:%M:%S'),
+            "last_touched": time.strftime('%Y-%m-%d %H:%M:%S'),
+        }
+
+        reply_id = self.topic_model.update_topic_by_topic_id(topic_id, update_topic_info)
+        append_id = self.append_model.add_new_append(append_info)
+
+        # update reputation of topic author
+        reputation = topic_info["author_reputation"] or 0
+        reputation = reputation - 2
+        reputation = 0 if reputation < 0 else reputation
+        self.user_model.set_user_base_info_by_uid(topic_info["author_id"], {"reputation": reputation})
+        self.redirect("/t/%s" % topic_id)
+
 class ProfileHandler(BaseHandler):
     def get(self, user, template_variables = {}):
         if(re.match(r'^\d+$', user)):
@@ -366,6 +463,24 @@ class ProfileHandler(BaseHandler):
         template_variables["gen_random"] = gen_random
         template_variables["active_page"] = "_blank"
         self.render("topic/profile.html", **template_variables)
+
+class CardHandler(BaseHandler):
+    def get(self, user, template_variables = {}):
+        if(re.match(r'^\d+$', user)):
+            user_info = self.user_model.get_user_by_uid(user)
+        else:
+            user_info = self.user_model.get_user_by_username(user)
+
+        if not user_info:
+            self.write_error(404)
+            return
+
+        current_user = self.current_user
+        page = int(self.get_argument("p", "1"))
+        template_variables["user_info"] = user_info
+        template_variables["gen_random"] = gen_random
+        template_variables["active_page"] = "_blank"
+        self.render("topic/card.html", **template_variables)
 
 class VoteHandler(BaseHandler):
     def get(self, template_variables = {}):
@@ -634,6 +749,58 @@ class CancelFavoriteHandler(BaseHandler):
         reputation = topic_info["author_reputation"] or 0
         reputation = reputation + 2 * math.log(self.current_user["reputation"] or 0 + topic_time_diff.days + 10, 10)
         self.user_model.set_user_base_info_by_uid(topic_info["author_id"], {"reputation": reputation})
+
+
+class BlockTopicHandler(BaseHandler):
+    def get(self, template_variables = {}):
+        topic_id = int(self.get_argument("topic_id"))
+        topic_info = self.topic_model.get_topic_by_topic_id(topic_id)
+
+        if not self.current_user:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "user_not_login",
+            }))
+            return
+
+        if not topic_info:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "topic_not_exist",
+            }))
+            return
+
+        if self.current_user["uid"] == topic_info["author_id"]:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "can_not_block_your_topic",
+            }))
+            return
+
+        if self.blocked_model.get_user_blocked_topic_by_involved_topic_id_and_trigger_user_id(topic_id, self.current_user["uid"]):
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "already_blocked",
+            }))
+            return
+
+        self.blocked_model.add_new_blocked({
+            "trigger_user_id": self.current_user["uid"],
+            "involved_topic_id": topic_id,
+            "status": 0,#0: blocked by user; 1: blocked by admin
+            "created": time.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+
+        self.write(lib.jsonp.print_JSON({
+            "success": 1,
+            "message": "block_success",
+        }))
+
+        # update reputation of topic author
+        '''topic_time_diff = datetime.datetime.now() - topic_info["created"]
+        reputation = topic_info["author_reputation"] or 0
+        reputation = reputation + 2 * math.log(self.current_user["reputation"] or 0 + topic_time_diff.days + 10, 10)
+        self.user_model.set_user_base_info_by_uid(topic_info["author_id"], {"reputation": reputation})'''
 
 class MembersHandler(BaseHandler):
     def get(self, template_variables = {}):

@@ -147,7 +147,8 @@ class Query(object):
         return self.db.query(sql)
 
     def grasp(self, sql):
-        select_regx = re.compile("SELECT (COUNT\()?(?P<field>[\w\*\s\.,]+)\)? FROM (?P<table_name>.*?)(LIMIT|ORDER|GROUP|HAVING|WHERE|LEFT|RIGHT|INNER|$)", re.I)
+        #select_regx = re.compile("SELECT (COUNT\()?(?P<field>[\w\*\s\.,]+)\)? FROM (?P<table_name>.*?)(LIMIT|ORDER|GROUP|HAVING|WHERE|LEFT|RIGHT|INNER|$)", re.I)
+        select_regx = re.compile("SELECT (?P<field>[\w\*\s\.|COUNT\(w\*\s\.\),]+) FROM (?P<table_name>.*?)(LIMIT|ORDER|GROUP|HAVING|WHERE|LEFT|RIGHT|INNER|$)", re.I)
         where_complex_regx = re.compile("WHERE (?P<condition>.*?)(LIMIT|ORDER|GROUP|HAVING|LEFT|RIGHT|INNER)", re.I)
         where_regx = re.compile("WHERE (?P<condition>.*)", re.I)
         limit_regx = re.compile("LIMIT (?P<start>\d+),?\s*(?P<end>\d+)?", re.I)
@@ -311,7 +312,7 @@ class Query(object):
         self.__close()
         return self.db.execute(sql) if not cheat else sql
 
-    def pages(self, current_page = 1, list_rows = 40, cheat = False):
+    '''def pages(self, current_page = 1, list_rows = 40, cheat = False):
         sql = self.select(cheat = True)
         self.__close()
         count = self.grasp(sql).count()
@@ -335,4 +336,41 @@ class Query(object):
             "total": count,
         }
 
-        return result if not cheat else self.grasp(sql).limit(start, end).select(cheat)
+        return result if not cheat else self.grasp(sql).limit(start, end).select(cheat)'''
+
+    #not use grasp() function to realize pages() function
+    def pages(self, current_page = 1, list_rows = 40, cheat = False):
+        sql = self.select(cheat = True)
+        self.__close()
+        #count = self.grasp(sql).count()
+
+        count = len(self.db.query(sql))
+
+        pages = count / list_rows
+        pages = pages + 1 if not count % list_rows == 0 else pages
+        if(pages == 0): pages = 1
+        if(current_page < 1): current_page = 1
+        if(current_page > pages): current_page = pages
+        start = (current_page - 1) * list_rows
+        end = list_rows
+        previous_page = current_page - 1 if current_page > 1 else 1
+        next_page = current_page + 1 if current_page < pages else pages
+
+        result = {}
+
+        limit = start if not end else "%s, %s" % (start, end)
+        self.__do("limit", limit)
+        sql = self.__sqlbuild(sql, ["join", "where", "group", "having", "order", "limit"])
+        sql = self.__sqlfix(sql)
+        self.__close()
+
+        result["list"] = self.db.query(sql)
+        result["page"] = {
+            "prev": previous_page,
+            "next": next_page,
+            "current": current_page,
+            "pages": pages,
+            "total": count,
+        }
+
+        return result if not cheat else sql

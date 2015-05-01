@@ -24,6 +24,16 @@ class ReplyModel(Query):
                 user.avatar as author_avatar"
         return self.where(where).order(order).join(join).field(field).pages(current_page = current_page, list_rows = num)
 
+    def get_all_not_blocked_replies_by_topic_id(self, topic_id, num = 16, current_page = 1, blocked_user = '(-1, -2)'):
+        where = "topic_id = %s AND author_id NOT IN %s" % (topic_id, blocked_user)
+        join = "LEFT JOIN user ON reply.author_id = user.uid"
+        order = "id ASC"
+        field = "reply.*, \
+                user.username as author_username, \
+                user.nickname as author_nickname, \
+                user.avatar as author_avatar"
+        return self.where(where).order(order).join(join).field(field).pages(current_page = current_page, list_rows = num)
+
     def add_new_reply(self, reply_info):
         return self.data(reply_info).add()
 

@@ -107,3 +107,13 @@ class SettingForm(Form):
     self_intro = TextField('Self_intro', [
         validators.Optional(),
     ])
+
+class SettingAlbumForm(Form):
+    description = TextField('Description', [
+        validators.Optional(),
+        validators.Length(min = 2, message = "照片描述过短（2-20个字符）"),
+        validators.Length(max = 20, message = "照片描述过长（2-20个字符）"),
+    ])
+    imgid = TextField('Imgid', [
+        validators.Required(message = "要添加描述的照片不明确"),
+    ])

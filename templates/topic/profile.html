@@ -12,6 +12,7 @@
     </script>
     <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/javascript" src="/static/js/base/juicer-min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.qrcode.min.js"></script>
     <script type="text/juicer" id="J_githubTpl">
         <ul>
             {@each github_repos as repo}
@@ -44,6 +45,38 @@
         });
     </script>
     {% endif %}
+
+    <script type="text/javascript">
+        jQuery(document).ready(function() {
+            $('.my-qrcode').qrcode({
+                width: 235,
+                height: 235,
+                text: 'http://{{ request.host }}/card/{{ user_info.username }}'
+            });
+
+            $('.J_userBlock').click(function(e){
+                var _node = $(this);
+                var _errorMap = {
+                    user_not_login: '屏蔽失败',
+                    user_not_exist: '用户不存在',
+                    can_not_block_yourself: '不能屏蔽自己',
+                    already_blocked: '已经屏蔽该用户',
+                };
+                e.preventDefault();
+                var r = confirm('确定要屏蔽{{ user_info.username }}?');
+                if(r == true)
+                {
+                    $.getJSON(_node.attr('href'), function(data) {
+                        if(data.success) {
+                            _node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">已屏蔽</span>');
+                        } else {
+                            _node.html('<span>' + _errorMap[data.message] + '</span>');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 {% endblock %}
 
 {% block main %}
@@ -53,7 +86,11 @@
                 <a href="/u/{{ user_info.username }}">
                     <img src="/static/avatar/m_{{ user_info.avatar or 'default.png' }}?t={{ gen_random() }}" alt="" class="avatar" />
                 </a>
-                <div class="username">{{ user_info.username }}</div>
+                <div class="username">
+                    {{ user_info.username }}
+                    <a href="/blockuser?user_id={{ user_info.uid }}" class="btn btn-mini J_userBlock">屏蔽</a>
+                </div>
+
                 {% if user_info.website %}
                     <div class="website"><a href="{{ user_info.website or '' }}">{{ user_info.website or '' }}</a></div>
                 {% endif %}
@@ -236,6 +273,13 @@
                     <strong>{{ user_info.reputation or 0 }}</strong> 威望
                 </div>
             </div>
+        </div>
+
+        <div class="container-box mt10">
+            <div class="ui-header">
+                <span class="title">我的名片</span>
+            </div>
+            <div class="ui-content my-qrcode"></div>
         </div>
 
         {% if user_info.self_intro %}

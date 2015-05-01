@@ -1,0 +1,128 @@
+{% extends 'snippet/layout.html' %}
+
+{% block javascript %}
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        });
+    </script>
+    <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="/static/js/widget/emmet.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.textarea.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.form.js"></script>
+    <script type="text/javascript" src="/static/js/widget/showdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/to-markdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/markdown-editor.js"></script>
+    <script type="text/javascript">
+        jQuery(document).ready(function() {
+            $('textarea.smart-code-support').tabby();
+            emmet.require('textarea').setup({
+                pretty_break: false, // enable formatted line breaks (when inserting // between opening and closing tag)
+                use_tab: false       // expand abbreviations by Tab key
+            });
+
+            image_url = $.request.queryString['url'];
+            if(image_url){
+                alert(image_url);
+            }
+
+            $(".J_imageMsg").hide();
+        });
+
+        function InsertImage(){
+            $(".J_insertImage").ajaxSubmit(function(data){
+                $(".J_imageMsg").show();
+                var _node = $(".J_imageMsg");
+                var _errorMap = {
+                    image_not_exist: '请先选择要插入的图片',
+                    invalid_image_type: '仅支持格式为jpg,jpeg,gif,png的图片',
+                    image_error_size: '图片不能超过2MB',
+                    invalid_image: '图片无法打开，请检查是否损坏',
+                    image_insert_failed: '图片插入失败，请重试或使用微博等作为图床'
+                };
+                data = $.parseJSON(data);
+                if(data.success) {
+                    var str = $('textarea').val() + data.message;
+                    $('textarea').val(str);
+                    _node.html('<span style="color: #0067a6">图片插入成功</span>');
+
+                    } else {
+                        _node.html('<p style="color: #FF0000">' + _errorMap[data.message] + '</p>');
+                    }
+            });
+            return false;
+        }
+
+
+
+    </script>
+{% endblock %}
+
+{% block main %}
+    <div class="topic-create container-box">
+        <div class="ui-header">
+            <span class="title">追加说明</span>
+        </div>
+
+        <div class="ui-content" style="clear:both;">
+            <h3 class="title">{{ topic.title }}</h3>
+            {{ topic.content|markdown|content_process}}
+            {% set append_num = 0 %}
+            {% for append in appends %}
+            {% set append_num = append_num + 1 %}
+            <hr>
+            <span class="floor" style="color:#999">第{{ append_num }}条追加说明</span>
+            <span class="time fr" style="color:#999">{{ append.create|pretty_date }}</span>
+            {{ append.content|markdown|content_process }}
+            {% endfor %}
+            <form class="mt10" action="" method="post">
+                {{ errors|dump_errors }}
+                <div class="editable"></div>
+                <textarea id="source" rows="3" class="content mt10 smart-code-support" placeholder="追加说明" name="content"></textarea>
+                <input name="tid" type="hidden" value="{{ topic.id }}" />
+                <input type="submit" id="checkall" class="btn btn-small" value="立即追加">
+                {{ xsrf_form_html() }}
+            </form>
+            <div class="J_imageMsg">
+
+            </div>
+            <form class="form-horizontal J_insertImage" action='http://{{ request.host }}/uploadqiniu' method="POST" enctype="multipart/form-data" onsubmit="return InsertImage();">
+                <div class="control-group">
+                    <label class="control-label" for="image">插入本地图片</label>
+                    <div class="controls">
+                        <input type="file" id="image" name="image" placeholder="" class="input-xlarge">
+                        <p class="help-block">请选择要插入的图片</p>
+                        <input type="submit" id="insertimg" class="btn btn-small" value="插入图片">
+                    </div>
+                </div>
+            {{ xsrf_form_html() }}
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="usercard container-box">
+        <div class="ui-header">
+            <a href="/u/{{ user_info.username }}">
+                <img src="/static/avatar/m_{{ user_info.avatar or 'default.png' }}?t={{ gen_random() }}" alt="" class="avatar" />
+            </a>
+            <div class="username">{{ user_info.username }}</div>
+            <div class="website"><a href="{{ user_info.website or '' }}">{{ user_info.website or '' }}</a></div>
+        </div>
+        <div class="ui-content">
+            <div class="status status-topic">
+                <strong><a href="/u/{{ user_info.username }}/topics">{{ user_info.counter.topics }}</a></strong> 主题
+            </div>
+            <div class="status status-reply">
+                <strong><a href="/u/{{ user_info.username }}/replies">{{ user_info.counter.replies }}</a></strong> 回复
+            </div>
+            <div class="status status-favorite">
+                <strong><a href="/u/{{ user_info.username }}/favorites">{{ user_info.counter.favorites }}</a></strong> 收藏
+            </div>
+            <div class="status status-reputation">
+                <strong>{{ user_info.reputation or 0 }}</strong> 威望
+            </div>
+        </div>
+    </div>
+{% endblock %}

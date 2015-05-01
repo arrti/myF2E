@@ -8,6 +8,7 @@
 import time
 import re
 import random
+import hashlib
 
 from htmlentity import unescape
 from HTMLParser import HTMLParser
@@ -34,6 +35,22 @@ def strip_tags(html):
 
 def gen_random():
     return random.random()
+
+def hashlib_sha1(content):
+    length = len(content)
+    blocks = length / 10240
+    rest = length % 10240
+
+    sha1 = hashlib.sha1()
+    n = 0
+    while blocks:
+        data = content[0:10240]
+        sha1.update(data)
+        content = content[10240:]
+
+    sha1.update(rest)
+
+    return  sha1.hexdigest()
 
 template_variables = {}
 template_variables["build_uri"] = build_uri

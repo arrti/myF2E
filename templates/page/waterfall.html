@@ -1,0 +1,101 @@
+﻿{% extends 'snippet/wflayout.html' %}
+
+{% block stylesheet %}
+
+<style type="text/css">
+        .J_imageLike {
+            color: #f2572d;
+            font-weight:bold;
+        }
+
+</style>
+
+{% endblock %}
+
+{% block javascript %}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        $('.J_imageLike').click(function (e) {
+            var _node = $(this);
+            var _type = _node.attr('data-type');
+            var _href = _node.attr('href').replace(/\/[^\?]+/igm, '/' + _type);
+            var _errorMap = {
+                image_not_exist: '照片不存在',
+                can_not_like_your_image: '不能赞自己的照片',
+                image_already_liked: '已经赞过',
+                user_not_login: '点赞失败',
+                image_not_liked: '尚未赞过',
+            };
+            e.preventDefault();
+            _node.attr('href', _href);
+            $.getJSON(_node.attr('href'), function (data) {
+                if (data.success) {
+                    if (_type === 'like') {
+                        _node.text('已赞');
+                        _node.attr('data-type', 'unlike');
+                    }
+
+                    if (_type === 'unlike') {
+                        _node.text('赞！');
+                        _node.attr('data-type', 'like');
+                    }
+                } else {
+                    _node.html('<span style="color: #FF0000">' + _errorMap[data.message] + '</span>');
+                }
+            });
+        });
+
+        $("#waterfall").gridalicious({
+            gutter: 20,
+            width: 300,
+            animate: true,
+            animationOptions: {
+                speed: 150,
+                duration: 300
+            },
+        });
+
+        $(".imgfloatbox").css("bottom",$("div.imgdesp").outerHeight(true) + 10);//10 is padding of div.item
+        $(".imgfloat").hide();
+        $("div.item").hover(
+            function () {
+                $(".imgfloat", this).slideDown(500);
+            },
+            function () {
+                $(".imgfloat", this).slideUp(500);
+            }
+
+        );
+
+    });
+
+</script>
+{% endblock %}
+{% block main %}
+    <div class="container-fluid container mt15" id="waterfall">
+        <div>ceshi</div>
+    {% for image in waterfall.list %}
+        <div class="item">
+            <a href="/u/{{ image.owner_username }}" class="nothing">
+                    <img src="/static/waterfall/{{ image.image_name or 'default.gif' }}" alt=""/>
+            </a>
+            <div class="imgfloatbox">
+                <div class="imgfloat" style="width: {{ image_width or '240px' }};">
+                    <a href="/u/{{ image.owner_username }}" style="float: left">{{ image.owner_username }}</a>
+                {% if current_user %}
+                    <!--a href="/love?image_id={{ image.id }}" class="J_topicVote">&nbsp;&nbsp;喜欢</a-->
+                    <a href="/like?image_id={{ image.id }}" class="J_imageLike" data-type="like">赞！</a>
+                {% endif %}
+                </div>
+            </div>
+            <div class="imgdesp" style="overflow: hidden; zoom: 1;">
+                <br>
+                <p style="color: #000">{{ image.image_desp or '' }}</p>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+
+{% endblock %}

@@ -45,3 +45,7 @@ env/
 *.swp
 *.sccsc
 *~
+
+# static files
+static/waterfall/*
+!static/waterfall/default.gif

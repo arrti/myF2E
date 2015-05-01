@@ -93,6 +93,7 @@
                     ('/members', 'members', '成员'),
                     ('/static/pages/timeline/index.html', 'timeline', '大事记'),
                     ('/static/pages/nav/index.html', 'nav', '导航'),
+                    ('/waterfall', 'waterfall', '瀑布流'),
                 ] -%}
 
                 {% set active_page = active_page|default('index') -%}
@@ -153,8 +154,8 @@
         </div>
     </div>
 </div>
-
+{#
 {% include "snippet/footer.html" %}
-
+#}
 </body>
 </html>

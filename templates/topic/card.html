@@ -1,0 +1,147 @@
+<!DOCTYPE HTML>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <meta content="yes" name="apple-mobile-web-app-capable" />
+    <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>{{ user_info.username }}的名片</title>
+    <script type="text/javascript" src="/static/js/base/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="/static/js/base/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/static/js/base/in-min.js"></script>
+    <link rel="stylesheet" href="/static/css/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="/static/css/main.css?t=20130807001.css" />
+    <link rel="stylesheet" href="/static/css/codehilite.css" />
+    <script type="text/javascript" src="/static/js/base/juicer-min.js"></script>
+</head>
+<body>
+
+<style type="text/css">
+    body {
+        max-width: 320px;
+        margin: 0 auto;
+    }
+
+    body .container {
+        font-family: "Hiragino Kaku Gothic ProN";
+    }
+
+    .follow-weixin {
+        background: #0067a6;
+        color: #fff;
+        text-align: center;
+        padding: 8px 10px;
+        border-radius: 5px;
+    }
+
+    .follow-weixin a {
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .usercard .ui-header, .user-page .profile .ui-header {
+        background: #0092c7;
+    }
+
+    .container-box {
+        border: 1px solid rgb(0, 170, 0);
+    }
+
+    .footer {
+        text-align: center;
+        background: transparent;
+        color: #999;
+    }
+
+    @media screen and (max-device-width: 480px), screen and (max-device-width: 641px), screen and (max-device-width: 720px) {
+        .nodes-cloud,
+        .usercard,
+        .user-page .profile {
+            display: block;
+        }
+    }
+</style>
+
+<div class="container-fluid container mt15 mb15">
+    <div class="row-fluid">
+        <div class="">
+            <div class="user-page">
+                <div class="profile container-box">
+                    <div class="ui-header">
+                        <a href="/u/{{ user_info.username }}">
+                            <img src="/static/avatar/m_{{ user_info.avatar or 'default.png' }}?t={{ gen_random() }}" alt="" class="avatar" />
+                        </a>
+                        <div class="username">{{ user_info.username }}</div>
+                        {% if user_info.website %}
+                        <div class="website"><a href="{{ user_info.website or '' }}">{{ user_info.website or '' }}</a></div>
+                        {% endif %}
+                    </div>
+                    <div class="ui-content">
+                        <dl>
+                            <dt>ID</dt>
+                            <dd>{{ user_info.username }}</dd>
+                        </dl>
+                        {% if user_info.nickname %}
+                        <dl>
+                            <dt>名号</dt>
+                            <dd>{{ user_info.nickname }}</dd>
+                        </dl>
+                        {% endif %}
+                        {% if user_info.location %}
+                        <dl>
+                            <dt>城市</dt>
+                            <dd>{{ user_info.location }}</dd>
+                        </dl>
+                        {% endif %}
+                        {% if user_info.company %}
+                        <dl>
+                            <dt>公司</dt>
+                            <dd>{{ user_info.company }}</dd>
+                        </dl>
+                        {% endif %}
+                        <dl>
+                            <dt>Email</dt>
+                            <dd>jiangbia***@sohu.com</dd>
+                        </dl>
+                        {% if user_info.twitter %}
+                        <dl>
+                            <dt>Twitter</dt>
+                            <dd><a href="http://twitter.com/{{ user_info.twitter }}">http://twitter.com/{{ user_info.twitter }}</a></dd>
+                        </dl>
+                        {% endif %}
+                        {% if user_info.github %}
+                        <dl>
+                            <dt>Github</dt>
+                            <dd><a href="http://github.com/{{ user_info.github }}">http://github.com/{{ user_info.github }}</a></dd>
+                        </dl>
+                        {% endif %}
+                        {% if user_info.website %}
+                        <dl>
+                            <dt>Blog</dt>
+                            <dd><a href="{{ user_info.website }}">{{ user_info.website }}</a></dd>
+                        </dl>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="">
+            <div class="user-page">
+                <div class="follow-weixin container-button mt15">
+                    <div class="ui-content">
+                        <a href="http://{{ request.host }}">欢迎访问</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="footer">
+    &copy;2014 Powered by F2E.im
+</div>
+
+</body>
+</html>

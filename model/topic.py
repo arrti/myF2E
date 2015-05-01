@@ -31,6 +31,24 @@ class TopicModel(Query):
                 last_replied_user.nickname as last_replied_nickname"
         return self.order(order).join(join).field(field).pages(current_page = current_page, list_rows = num)
 
+    def get_all_not_blocked_topics(self, num = 36, current_page = 1, blocked_user = '(-1,-2)', blocked_topic = '(-1,-2)'):
+        where = "topic.id NOT IN %s AND topic.author_id NOT IN %s" % (blocked_topic, blocked_user)
+        join = "LEFT JOIN user AS author_user ON topic.author_id = author_user.uid \
+                LEFT JOIN node ON topic.node_id = node.id \
+                LEFT JOIN user AS last_replied_user ON topic.last_replied_by = last_replied_user.uid"
+        order = "last_touched DESC, created DESC, last_replied_time DESC, id DESC"
+        field = "topic.*, \
+                author_user.username as author_username, \
+                author_user.nickname as author_nickname, \
+                author_user.avatar as author_avatar, \
+                author_user.uid as author_uid, \
+                author_user.reputation as author_reputation, \
+                node.name as node_name, \
+                node.slug as node_slug, \
+                last_replied_user.username as last_replied_username, \
+                last_replied_user.nickname as last_replied_nickname"
+        return self.where(where).order(order).join(join).field(field).pages(current_page = current_page, list_rows = num)
+
     def get_all_topics_by_node_slug(self, num = 36, current_page = 1, node_slug = None):
         where = "node.slug = '%s'" % node_slug
         join = "LEFT JOIN user AS author_user ON topic.author_id = author_user.uid \

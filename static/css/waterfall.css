@@ -1,0 +1,7 @@
+@charset "utf-8";
+.item { position: relative; background: #bebebe; border-radius: 3px; padding: 10px; }
+.imgfloatbox { height:auto; background-color:#000; FILTER:alpha(opacity=60); opacity:0.7; -moz-opacity:0.7; position:absolute; right:10px; bottom:10px; }
+.imgfloat { height:auto; float:left; padding:10px; color:#fff; font-size:12px; line-height:100%; }
+.imgfloat a { float:right; }
+.Max_msg {font-size:11px; color: #ef4926; }
+

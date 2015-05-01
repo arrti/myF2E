@@ -7,7 +7,7 @@
 
 import uuid
 import hashlib
-import Image
+from PIL import Image
 import StringIO
 import time
 import json
@@ -16,6 +16,7 @@ import urllib2
 import urllib
 import tornado.web
 import lib.jsonp
+import glob
 
 from base import *
 from lib.sendmail import send
@@ -345,4 +346,55 @@ class RegisterHandler(BaseHandler):
             send(mail_title, mail_content, form.email.data)
 
         self.redirect(self.get_argument("next", "/"))
+
+class BlockUserHandler(BaseHandler):
+    def get(self, template_variables = {}):
+        user_id = int(self.get_argument("user_id"))
+        user_info = self.user_model.get_user_by_uid(user_id)
+
+        if not self.current_user:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "user_not_login",
+            }))
+            return
+
+        if not user_info:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "user_not_exist",
+            }))
+            return
+
+        if self.current_user["uid"] == user_info["uid"]:
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "can_not_block_yourself",
+            }))
+            return
+
+        if self.blocked_model.get_user_blocked_user_by_involved_user_id_and_trigger_user_id(user_id, self.current_user["uid"]):
+            self.write(lib.jsonp.print_JSON({
+                "success": 0,
+                "message": "already_blocked",
+            }))
+            return
+
+        self.blocked_model.add_new_blocked({
+            "trigger_user_id": self.current_user["uid"],
+            "involved_user_id": user_id,
+            "status": 0,#0: blocked by user; 1: blocked by admin
+            "created": time.strftime('%Y-%m-%d %H:%M:%S'),
+        })
+
+        self.write(lib.jsonp.print_JSON({
+            "success": 1,
+            "message": "block_success",
+        }))
+
+        # update reputation of topic author
+        '''topic_time_diff = datetime.datetime.now() - topic_info["created"]
+        reputation = topic_info["author_reputation"] or 0
+        reputation = reputation + 2 * math.log(self.current_user["reputation"] or 0 + topic_time_diff.days + 10, 10)
+        self.user_model.set_user_base_info_by_uid(topic_info["author_id"], {"reputation": reputation})'''
 

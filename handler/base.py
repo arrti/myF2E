@@ -54,6 +54,22 @@ class BaseHandler(tornado.web.RequestHandler):
         return self.application.favorite_model
 
     @property
+    def image_model(self):
+        return self.application.image_model
+
+    @property
+    def image_like_model(self):
+        return self.application.image_like_model
+
+    @property
+    def append_model(self):
+        return self.application.append_model
+
+    @property
+    def blocked_model(self):
+        return self.application.blocked_model
+
+    @property
     def loader(self):
         return self.application.loader
 

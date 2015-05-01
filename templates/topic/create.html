@@ -9,6 +9,10 @@
     <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <script type="text/javascript" src="/static/js/widget/emmet.min.js"></script>
     <script type="text/javascript" src="/static/js/widget/jquery.textarea.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.form.js"></script>
+    <script type="text/javascript" src="/static/js/widget/showdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/to-markdown.js"></script>
+    <script type="text/javascript" src="/static/js/widget/markdown-editor.js"></script>
     <script type="text/javascript">
         jQuery(document).ready(function() {
             $('textarea.smart-code-support').tabby();
@@ -16,7 +20,35 @@
                 pretty_break: false, // enable formatted line breaks (when inserting // between opening and closing tag)
                 use_tab: false       // expand abbreviations by Tab key
             });
+
+            $(".J_imageMsg").hide();
+
         });
+
+        function InsertImage(){
+            $(".J_insertImage").ajaxSubmit(function(data){
+                $(".J_imageMsg").show();
+                var _node = $(".J_imageMsg");
+                var _errorMap = {
+                    image_not_exist: '请先选择要插入的图片',
+                    invalid_image_type: '仅支持格式为jpg,jpeg,gif,png的图片',
+                    image_error_size: '图片不能超过2MB',
+                    invalid_image: '图片无法打开，请检查是否损坏',
+                    image_insert_failed: '图片插入失败，请重试或使用微博等作为图床'
+                };
+                data = $.parseJSON(data);
+                if(data.success) {
+                    var str = $('textarea').val() + data.message;
+                    $('textarea').val(str);
+                    _node.html('<span style="color: #0067a6">图片插入成功</span>');
+
+                    } else {
+                        _node.html('<p style="color: #FF0000">' + _errorMap[data.message] + '</p>');
+                    }
+            });
+            return false;
+        }
+
     </script>
 {% endblock %}
 
@@ -33,9 +65,24 @@
                     <span class="add-on">#</span>
                     <input class="span11" id="prependedInput" type="text" placeholder="主题" name="title">
                 </div>
-                <textarea rows="3" class="content mt5 smart-code-support" placeholder="正文" name="content"></textarea>
+                <div class="editable"></div>
+                <textarea id="source" rows="3" class="content mt5 smart-code-support" placeholder="正文" name="content"></textarea>
                 <input type="submit" id="checkall" class="btn btn-small" value="立即创建">
                 {{ xsrf_form_html() }}
+            </form>
+            <div class="J_imageMsg">
+
+            </div>
+            <form class="form-horizontal J_insertImage" action='http://{{ request.host }}/uploadqiniu' method="POST" enctype="multipart/form-data" onsubmit="return InsertImage();">
+                <div class="control-group">
+                    <label class="control-label" for="image">插入本地图片</label>
+                    <div class="controls">
+                        <input type="file" id="image" name="image" placeholder="" class="input-xlarge">
+                        <p class="help-block">请选择要插入的图片</p>
+                        <input type="submit" id="insertimg" class="btn btn-small" value="插入图片">
+                    </div>
+                </div>
+            {{ xsrf_form_html() }}
             </form>
         </div>
     </div>

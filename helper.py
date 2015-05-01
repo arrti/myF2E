@@ -7,11 +7,17 @@
 
 import json
 import re
+from qiniu import Auth
 
 from lib.variables import *
 from lib.superjson import dumps
 from jinja2 import evalcontextfilter, Markup, escape
 from markdown import markdown
+
+#qiniu cloud
+access_key = 'your access_key'
+secret_key = 'your secret_key'
+bucket_domain = "your bucket_domain"
 
 class Filters():
     def __init__(self, jinja2_env):
@@ -134,6 +140,16 @@ class Filters():
         content = re.sub(r'http(s)?:\/\/gist.github.com\/(\d+)(.js)?', r'<script src="http://gist.github.com/\2.js"></script>', content)
         # render sinaimg pictures
         content = re.sub(r'(http:\/\/\w+.sinaimg.cn\/.*?\.(jpg|gif|png))', r'<img src="\1" />', content)
+        # render qiniu private image link
+        qiniu_re = re.compile(r'(%s/.*?\.(?:jpg|jpeg|gif|png))' % bucket_domain)
+        image_urls = qiniu_re.findall(content)
+        q = Auth(access_key, secret_key)
+        private_url = "jk"
+        for image_url in image_urls:
+            private_url = q.private_download_url(image_url, expires=10)
+            #private_url = re.sub(r'&', '&amp;', private_url)
+            content = re.sub(image_url, r'<img src="%s" />' % private_url, content)
+
         # render @ mention links
         content = re.sub(r'@(\w+)(\s|)', r'@<a href="/u/\1">\1</a> ', content)
         # render youku videos

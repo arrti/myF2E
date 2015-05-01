@@ -7,7 +7,7 @@
 
 import uuid
 import hashlib
-import Image
+from PIL import Image
 import StringIO
 import time
 import json

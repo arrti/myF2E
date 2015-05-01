@@ -1,0 +1,225 @@
+{% extends 'snippet/layout.html' %}
+
+{% block stylesheet %}
+
+<link rel="stylesheet" href="/static/css/waterfall.css" type="text/css"  />
+
+{% endblock %}
+
+{% block javascript %}
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}
+        });
+    </script>
+    <script type="text/javascript" src="https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="/static/js/widget/emmet.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.textarea.min.js"></script>
+    <script type="text/javascript" src="/static/js/widget/jquery.grid-a-licious.js"></script>
+    <script type="text/javascript" src="/static/js/widget/checkmaxinput.js"></script>
+    <script type="text/javascript">
+        jQuery(document).ready(function() {
+            $('textarea.smart-code-support').tabby();
+            emmet.require('textarea').setup({
+                pretty_break: false, // enable formatted line breaks (when inserting // between opening and closing tag)
+                use_tab: false       // expand abbreviations by Tab key
+            });
+        });
+    </script>
+    <script type="text/javascript">
+
+        $(document).ready(function() {
+            /*$('.J_setWaterFall').click(function(e) {
+                var _node = $(this);
+                var _errorMap = {
+                    image_not_exist: '照片不存在',
+                    can_not_set_not_your_image: '没有权限设置照片',
+                    already_seted: '已加入展示',
+                };
+                e.preventDefault();
+                $.getJSON(_node.attr('href'), function(data) {
+                    if(data.success) {
+                        _node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">已加入展示</span>');
+                    } else {
+                        _node.html('<span>' + _errorMap[data.message] + '</span>');
+                    }
+                });
+            });*/
+
+            $('.J_setWaterFall').click(function(e) {
+                var _node = $(this);
+                var _type = _node.attr('data-type');
+                var _href = _node.attr('href').replace(/\/[^\?]+/igm, '/' + _type);
+                var _errorMap = {
+                    image_not_exist: '照片不存在',
+                    can_not_set_not_your_image: '没有权限设置照片',
+                    already_seted: '已经加入展示',
+                    user_not_login: '加入展示失败',
+                    not_been_seted: '尚未加入展示',
+                };
+                e.preventDefault();
+                _node.attr('href', _href);
+                $.getJSON(_node.attr('href'), function(data) {
+                    if(data.success) {
+                        //_node.html('<span class="f11 gray" style="text-shadow: 0px 1px 0px #fff;">收藏成功</span>');
+                        if(_type === 'setwaterfall') {
+                            _node.text('已展示');
+                            _node.attr('data-type', 'resetwaterfall');
+                        }
+
+                        if(_type === 'resetwaterfall') {
+                            _node.text('展示！');
+                            _node.attr('data-type', 'setwaterfall');
+                        }
+                    } else {
+                        _node.html('<span style="color: #FF0000">' + _errorMap[data.message] + '</span>');
+                    }
+                });
+            });
+
+            $('.J_deleteImage').click(function(e) {
+                var _node = $(this);
+                var _type = _node.attr('data-type');
+                var _href = _node.attr('href').replace(/\/[^\?]+/igm, '/' + _type);
+                var _errorMap = {
+                    image_not_exist: '照片不存在',
+                    can_not_set_not_your_image: '没有权限删除照片',
+                    user_not_login: '删除失败',
+                };
+                e.preventDefault();
+                _node.attr('href', _href);
+                $.getJSON(_node.attr('href'), function(data) {
+                    if(data.success) {
+                        window.location.reload();
+                    } else {
+                        _node.html('<span style="color: #FF0000">' + _errorMap[data.message] + '</span>');
+                    }
+                });
+            });
+
+            $(".J_selectImage").click(function(e) {
+                $("div.item").css("background", "#bebebe");
+                $(this).parent().css("background", "#32a9d9");
+                e.preventDefault();
+                imgdesp = $(this).parent().find("div.imgdesp p").text();
+                $("#description").attr("value", imgdesp);
+                $("input[name='imgid']").attr("value", $(this).attr("data-image-id"));
+
+            });
+
+            $(document).click(function(e){
+                if ($(e.target).closest(".J_selectImage").length == 0 && $(e.target).closest("#description").length == 0){
+                    $("div.item").css("background", "#bebebe");
+                }
+
+            });
+
+            $("#waterfall").gridalicious({
+                gutter: 5,
+                width: 200,
+                animate: true,
+                animationOptions: {
+                    speed: 150,
+                    duration: 300
+                },
+            });
+
+            $(".imgfloat").hide();
+            $("div.item").hover(
+                function () {
+                    $(".imgfloatbox", this).css("bottom", $("div.imgdesp", this).outerHeight(true) + 10);//10 is padding of div.item
+                    $(".imgfloat", this).slideDown(500);
+                },
+                function () {
+                    $(".imgfloatbox", this).css("bottom", $("div.imgdesp", this).outerHeight(true) + 10);//10 is padding of div.item
+                    $(".imgfloat", this).slideUp(500);
+                }
+            );
+        });
+
+
+    </script>
+{% endblock %}
+
+{% block main %}
+    <div class="container-box">
+        <div id="legend">
+            <legend class="">用户照片墙</legend>
+        </div>
+        {{ errors|dump_errors }}
+        <span>{{ ceshi }}</span>
+        <div class="container-fluid" id="waterfall">
+            {% for image in album.list %}
+            <div class="item">
+                <a href="#" class="J_selectImage" data-image-id="{{ image.id }}">
+                    <img src="/static/waterfall/{{ image.image_name or 'default.gif' }}" alt=""/>
+                </a>
+                <div class="imgfloatbox">
+                    <div class="imgfloat" style="width: 100px;">
+                        {% if image.waterfall == 0 %}
+                        <a href="/setwaterfall?image_id={{ image.id }}" class="J_setWaterFall" data-type="setwaterfall" style="color:#f2572d;float:left;font-weight:bold;">展示！</a>
+                        {% else %}
+                        <a href="/resetwaterfall?image_id={{ image.id }}" class="J_setWaterFall" data-type="resetwaterfall" style="color:#f2572d;float:left;font-weight:bold;">已展示</a>
+                        {% endif %}
+                        <a href="/deleteimage?image_id={{ image.id }}" class="J_deleteImage" data-type="deleteimage" style="color: #0067a6;font-weight:bold;">刪除</a>
+                    </div>
+                </div>
+                <div class="imgdesp" style="overflow: hidden; zoom: 1;">
+                    <span>共收到{{ image.likes_count or '0' }}个赞</span>
+                    <br>
+                    <p style="color: #000">{{ image.image_desp or '' }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <form class="form-horizontal" action='' method="POST" enctype="multipart/form-data">
+            <fieldset>
+                <div class="control-group">
+                    <!-- Avatar-->
+                    <label class="control-label" for="image">上传</label>
+                    <div class="controls">
+                        {% if image_count < 6 %}
+                        <input type="file" id="image" name="image" placeholder="" class="input-xlarge">
+                        <p class="help-block">请选择要上传的照片</p>
+                        {% else %}
+                        <input type="file" id="image" name="image" placeholder="" class="input-xlarge" disabled="disabled">
+                        <p class="help-block">每位用户最多上传6张照片</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <!-- E-mail -->
+                    <label class="control-label" for="description">照片描述：</label>
+                    <div class="controls">
+                        <input name="imgid" type="hidden" value="" />
+                        <textarea type="text" id="description" name="description" placeholder="" class="input-xlarge"
+                               onkeydown="checkMaxInput(this,50)" onkeyup="checkMaxInput(this,50)"
+                               onfocus="checkMaxInput(this,50)" onblur="checkMaxInput(this,50);resetMaxmsg()"></textarea>
+                        <p class="help-block">添加你对照片的描述，让照片表达的更多</p>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <!-- Button -->
+                    <div class="controls">
+                        <button class="btn btn-success">保存改动</button>
+                        <a href="/setting" class="ml10 btn">返回设置页</a>
+                    </div>
+                </div>
+            </fieldset>
+            {{ xsrf_form_html() }}
+        </form>
+    </div>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="sidenav container-box">
+        <ul>
+            <li><a href="/setting">用户中心</a></li>
+            <li class="current"><a href="/setting/avatar">设置头像</a></li>
+            <li><a href="/setting/password">设置密码</a></li>
+            <li><a href="/">返回首页</a></li>
+        </ul>
+    </div>
+{% endblock %}

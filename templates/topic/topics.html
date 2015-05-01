@@ -13,6 +13,19 @@
     #}
 
     <div class="topics container-box deprecated-mt10">
+        <div class="ui-header">
+            <div class="dropdown fr">
+                <a class="btn btn-small" type="button" href="###" data-toggle="dropdown">创建新主题</a>
+                <ul class="dropdown-menu" role="menu">
+                    <li role="presentation">
+                        <a role="menuitem" href="/t/create/test">测试</a>
+                    </li>
+                </ul>
+            </div>
+            <span class="bread-nav">
+                <a class="node-link" href="/node/test">测试</a>
+            </span>
+        </div>
         {% for topic in topics.list %}
             <div class="topic-item">
                 <a href="/u/{{ topic.author_username }}">
